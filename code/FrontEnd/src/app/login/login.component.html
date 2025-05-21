@@ -1,0 +1,19 @@
+<div class="login-container">
+  <div class="login-card">
+    <h2>Login</h2>
+    
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="email" id="email" [(ngModel)]="email" placeholder="Enter your email" (keydown.enter)="login()">
+      <div *ngIf="emailError" class="error-message">Email is required</div>
+    </div>
+    
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" [(ngModel)]="password" placeholder="Enter your password" (keydown.enter)="login()">
+      <div *ngIf="passwordError" class="error-message">Password is required</div>
+    </div>
+    
+    <button (click)="login()" class="login-button">Login</button>
+  </div>
+</div>

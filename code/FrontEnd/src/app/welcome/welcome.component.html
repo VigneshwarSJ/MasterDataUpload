@@ -1,0 +1,62 @@
+<div class="welcome-container">
+  <div class="header">
+    <button class="logout-button" (click)="logout()">Logout</button>
+  </div>
+  
+  <div class="welcome-card">
+    <h2>Welcome!</h2>
+    <p class="welcome-message">Hello, <span class="username">{{ username }}</span>! You have successfully logged in.</p>
+    
+    <div class="upload-section">
+      <h3>Upload Excel File</h3>
+      <div class="file-input-container">
+        <input type="file" id="excelFile" (change)="onFileChange($event)" accept=".xlsx" />
+        <label for="excelFile" class="file-input-label">Browse</label>
+        <span *ngIf="selectedFile" class="file-name">{{ selectedFile.name }}</span>
+      </div>
+      
+      <div *ngIf="sheetNames.length > 0" class="sheet-selection sheet-selection-flex">
+        <label for="sheetSelect" style="margin-bottom: 0; margin-right: 8px;">Select Sheet:</label>
+        <select id="sheetSelect" [(ngModel)]="selectedSheet" class="sheet-dropdown" style="flex: 1 1 auto; min-width: 0;">
+          <option *ngFor="let sheet of sheetNames" [value]="sheet">{{ sheet }}</option>
+        </select>
+        <div class="override-checkbox-group">
+          <label class="override-checkbox-label">
+            <input type="checkbox" [(ngModel)]="overrideColumn" style="margin-right: 4px;" />
+            Override column
+          </label>
+          <input
+            *ngIf="overrideColumn && displayData[0]"
+            type="number"
+            min="0"
+            [max]="displayData[0].length - 1"
+            [(ngModel)]="keyColumnIndex"
+            style="width: 60px; margin-left: 8px;"
+            placeholder="Col #" />
+        </div>
+      </div>
+      <div class="button-group">
+        <button class="view-button" (click)="view()">View</button>
+        <button class="insert-button" (click)="insert()">Insert</button>
+      </div>
+    </div>
+    
+    <!-- Use data-modal component for popup display of Excel data -->
+    <app-data-modal 
+      [isVisible]="showDataModal" 
+      [data]="displayData" 
+      [title]="selectedSheet ? 'Sheet: ' + selectedSheet : 'Excel Data'"
+      (closed)="closeDataModal()"
+      (verify)="verifySheet()"
+      [validationResults]="validationResults"
+      [showValidation]="showValidation">
+    </app-data-modal>
+  </div>
+</div>
+
+<!-- Notification Tooltip -->
+<div *ngIf="notificationVisible" class="notification-tooltip" [ngClass]="notificationType" 
+     (mouseenter)="onNotificationMouseEnter()" (mouseleave)="onNotificationMouseLeave()" style="user-select: text;">
+  <span class="checkmark">&#10003;</span>
+  {{ notification }}
+</div>

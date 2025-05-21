@@ -1,0 +1,39 @@
+<div class="modal-overlay" *ngIf="isVisible">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h2>{{ title }}</h2>
+      <button class="close-button" (click)="close()">×</button>
+    </div>
+    <div class="modal-content">
+      <div class="table-wrapper">
+        <table class="data-table" *ngIf="data && data.length > 0">
+          <thead>
+            <tr>
+              <th *ngFor="let header of data[0]; let i = index">
+                {{ header || 'Column ' + (i + 1) }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of data.slice(1); let i = index">
+              <td *ngFor="let cell of row; let j = index"
+                  [ngClass]="getCellClass(i, j)"
+                  [title]="getCellMessage(i, j)">
+                {{ cell }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="validation-legend">
+      <span class="legend-box cell-type"></span> <span class="legend-label">Red - Data type mismatch</span>
+      <span class="legend-box cell-duplicate"></span> <span class="legend-label">Yellow - Duplicate</span>
+      <span class="legend-box cell-valid"></span> <span class="legend-label">Green - Valid</span>
+    </div>
+    <div class="modal-footer">
+      <button class="verify-btn" (click)="onVerify()">Verify</button>
+      <button class="close-btn" (click)="close()">Close</button>
+    </div>
+  </div>
+</div>

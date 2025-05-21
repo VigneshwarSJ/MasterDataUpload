@@ -1,0 +1,279 @@
+.welcome-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: linear-gradient(135deg, #6e8efb, #a777e3);
+  font-family: Arial, sans-serif;
+}
+
+.header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 20px;
+  width: 100%;
+}
+
+.welcome-card {
+  background-color: white;
+  border-radius: 10px;
+  padding: 30px;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  margin: 0 auto;
+  margin-top: 20px;
+}
+
+.upload-section {
+  margin-top: 30px;
+  text-align: left;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.upload-section h3 {
+  margin-bottom: 20px;
+  color: #333;
+  font-weight: normal;
+}
+
+.file-input-container {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.file-input-container input[type="file"] {
+  display: none;
+}
+
+.file-input-label {
+  background-color: #6e8efb;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.file-input-label:hover {
+  background-color: #5b7fe8;
+}
+
+.file-name {
+  margin-left: 15px;
+  color: #555;
+  font-size: 14px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 250px;
+}
+
+.sheet-selection {
+  margin-top: 20px;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.view-button, .insert-button {
+  flex: 1 1 0;
+  min-width: 0;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 15px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  box-sizing: border-box;
+}
+
+.view-button {
+  background-color: #6e8efb;
+}
+
+.view-button:hover {
+  background-color: #5b7fe8;
+}
+
+.insert-button {
+  background-color: #4caf50;
+}
+
+.insert-button:hover {
+  background-color: #3d9140;
+}
+
+/* Table styles */
+.data-table-container {
+  margin-top: 30px;
+  text-align: left;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.data-table-container h3 {
+  margin-bottom: 15px;
+  color: #333;
+  font-weight: normal;
+}
+
+.table-wrapper {
+  max-height: 400px;
+  overflow-y: auto;
+  border-radius: 5px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.excel-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+}
+
+.excel-data-table th,
+.excel-data-table td {
+  padding: 10px 15px;
+  text-align: left;
+  border: 1px solid #e0e0e0;
+  font-size: 14px;
+}
+
+.excel-data-table th {
+  background-color: #f4f6fe;
+  color: #333;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.excel-data-table tbody tr:nth-child(even) {
+  background-color: #f9faff;
+}
+
+.excel-data-table tbody tr:hover {
+  background-color: #f0f4ff;
+}
+
+.sheet-dropdown {
+  flex: 1 1 0;
+  min-width: 0;
+  margin-top: 0;
+}
+
+h2 {
+  margin-bottom: 20px;
+  color: #333;
+  font-weight: normal;
+}
+
+.welcome-message {
+  margin-bottom: 30px;
+  font-size: 18px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.username {
+  font-weight: bold;
+  color: #6e8efb;
+}
+
+.logout-button {
+  background-color: #6e8efb;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.logout-button:hover {
+  background-color: #5b7fe8;
+}
+
+.notification-tooltip {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  background: #4caf50;
+  color: #fff;
+  padding: 16px 32px 16px 48px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  font-size: 1.1rem;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  min-width: 260px;
+  max-width: 400px;
+  font-weight: 500;
+}
+
+.notification-tooltip .checkmark {
+  font-size: 1.6rem;
+  margin-right: 16px;
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #388e3c;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notification-tooltip.error {
+  background: #e53935;
+}
+
+.notification-tooltip.error .checkmark {
+  background: #b71c1c;
+}
+
+.notification-tooltip:hover {
+  cursor: pointer;
+}
+
+.sheet-selection-flex {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.sheet-selection-flex label[for="sheetSelect"] {
+  white-space: nowrap;
+  margin-bottom: 0;
+  margin-right: 8px;
+}
+
+.override-checkbox-group {
+  display: flex;
+  align-items: center;
+  margin-left: 16px;
+  white-space: nowrap;
+}
+
+.override-checkbox-label {
+  display: flex;
+  align-items: center;
+  margin: 0;
+}

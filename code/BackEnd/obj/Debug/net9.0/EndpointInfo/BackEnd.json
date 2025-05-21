@@ -1,0 +1,202 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Excel Data Import API",
+    "description": "API for importing Excel data into SQL Server",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/upload": {
+      "post": {
+        "tags": [
+          "Excel"
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              },
+              "encoding": {
+                "file": {
+                  "style": "form"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/sheet-preview": {
+      "get": {
+        "tags": [
+          "Excel"
+        ],
+        "parameters": [
+          {
+            "name": "FileName",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "SheetName",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/verify": {
+      "post": {
+        "tags": [
+          "Excel"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/insert": {
+      "post": {
+        "tags": [
+          "Excel"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InsertRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InsertRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/InsertRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "InsertRequest": {
+        "required": [
+          "sheetData",
+          "sheetName"
+        ],
+        "type": "object",
+        "properties": {
+          "sheetName": {
+            "type": "string",
+            "nullable": true
+          },
+          "sheetData": {
+            "$ref": "#/components/schemas/SheetData"
+          }
+        },
+        "additionalProperties": false
+      },
+      "SheetData": {
+        "required": [
+          "headers",
+          "rows",
+          "sheetName"
+        ],
+        "type": "object",
+        "properties": {
+          "sheetName": {
+            "type": "string",
+            "nullable": true
+          },
+          "headers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": { }
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "VerifyRequest": {
+        "required": [
+          "sheetData",
+          "sheetName"
+        ],
+        "type": "object",
+        "properties": {
+          "sheetName": {
+            "type": "string",
+            "nullable": true
+          },
+          "sheetData": {
+            "$ref": "#/components/schemas/SheetData"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}
