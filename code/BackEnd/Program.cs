@@ -2,6 +2,8 @@ using BackEnd.Services;
 using Microsoft.AspNetCore.Server.IIS;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.OpenApi.Models;
+using Microsoft.EntityFrameworkCore;
+using BackEnd.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,6 +19,10 @@ builder.Services.AddSwaggerGen(c =>
         Description = "API for importing Excel data into SQL Server" 
     });
 });
+
+// Add DbContext configuration
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Register services
 builder.Services.AddScoped<ExcelService>();

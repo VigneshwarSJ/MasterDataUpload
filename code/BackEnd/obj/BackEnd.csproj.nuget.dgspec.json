@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\AI Project Copies\\AI-PROJECT - V7- verify working\\backend\\BackEnd.csproj": {}
+    "D:\\AI Project Copies\\MasterDataUpload\\code\\backend\\BackEnd.csproj": {}
   },
   "projects": {
-    "D:\\AI Project Copies\\AI-PROJECT - V7- verify working\\backend\\BackEnd.csproj": {
+    "D:\\AI Project Copies\\MasterDataUpload\\code\\backend\\BackEnd.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\AI Project Copies\\AI-PROJECT - V7- verify working\\backend\\BackEnd.csproj",
+        "projectUniqueName": "D:\\AI Project Copies\\MasterDataUpload\\code\\backend\\BackEnd.csproj",
         "projectName": "BackEnd",
-        "projectPath": "D:\\AI Project Copies\\AI-PROJECT - V7- verify working\\backend\\BackEnd.csproj",
+        "projectPath": "D:\\AI Project Copies\\MasterDataUpload\\code\\backend\\BackEnd.csproj",
         "packagesPath": "C:\\Users\\VigneshwarSivashanmu\\.nuget\\packages\\",
-        "outputPath": "D:\\AI Project Copies\\AI-PROJECT - V7- verify working\\backend\\obj\\",
+        "outputPath": "D:\\AI Project Copies\\MasterDataUpload\\code\\backend\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -22,7 +22,7 @@
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
-          "net9.0"
+          "net7.0"
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
@@ -30,8 +30,8 @@
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
-          "net9.0": {
-            "targetAlias": "net9.0",
+          "net7.0": {
+            "targetAlias": "net7.0",
             "projectReferences": {}
           }
         },
@@ -48,8 +48,8 @@
         "SdkAnalysisLevel": "9.0.200"
       },
       "frameworks": {
-        "net9.0": {
-          "targetAlias": "net9.0",
+        "net7.0": {
+          "targetAlias": "net7.0",
           "dependencies": {
             "EPPlus": {
               "target": "Package",
@@ -57,11 +57,25 @@
             },
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
-              "version": "[9.0.3, )"
+              "version": "[7.0.0, )"
+            },
+            "Microsoft.EntityFrameworkCore": {
+              "target": "Package",
+              "version": "[7.0.0, )"
+            },
+            "Microsoft.EntityFrameworkCore.SqlServer": {
+              "target": "Package",
+              "version": "[7.0.0, )"
+            },
+            "Microsoft.EntityFrameworkCore.Tools": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[7.0.0, )"
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
-              "version": "[8.1.1, )"
+              "version": "[6.4.0, )"
             },
             "System.Data.SqlClient": {
               "target": "Package",
@@ -87,7 +101,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.201/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.201\\RuntimeIdentifierGraph.json"
         }
       }
     }

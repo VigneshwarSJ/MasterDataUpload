@@ -21,10 +21,8 @@ namespace BackEnd.Helpers
             {
                 var fileInfo = new ExcelFileInfo
                 {
-                    FileName = Path.GetFileName(filePath),
-                    SheetNames = package.Workbook.Worksheets.Select(s => s.Name).ToList()
+                    FileName = Path.GetFileName(filePath)
                 };
-                
                 return fileInfo;
             }
         }

@@ -1,11 +1,19 @@
+using System;
 using System.Collections.Generic;
 
 namespace BackEnd.Models
 {
     public class ExcelFileInfo
     {
-        public required string FileName { get; set; }
-        public required List<string> SheetNames { get; set; }
+        public int Id { get; set; }
+        public string FileName { get; set; } = string.Empty;
+        public DateTime UploadDate { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public string SheetName { get; set; } = string.Empty;
+        public List<string> Columns { get; set; } = new List<string>();
+        public List<List<object>> Rows { get; set; } = new List<List<object>>();
+        public Dictionary<string, object> Results { get; set; } = new Dictionary<string, object>();
     }
 
     public class SheetPreviewRequest

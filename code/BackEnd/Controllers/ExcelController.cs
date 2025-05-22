@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using System.Text.Json;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
 
 namespace BackEnd.Controllers
 {
@@ -18,12 +19,18 @@ namespace BackEnd.Controllers
         private readonly ExcelService _excelService;
         private readonly DataValidationService _dataValidationService;
         private readonly IConfiguration _configuration;
+        private readonly ApplicationDbContext _dbContext;
 
-        public ExcelController(ExcelService excelService, DataValidationService dataValidationService, IConfiguration configuration)
+        public ExcelController(
+            ExcelService excelService, 
+            DataValidationService dataValidationService, 
+            IConfiguration configuration,
+            ApplicationDbContext dbContext)
         {
             _excelService = excelService;
             _dataValidationService = dataValidationService;
             _configuration = configuration;
+            _dbContext = dbContext;
         }
 
         [HttpPost("upload")]
@@ -108,166 +115,211 @@ namespace BackEnd.Controllers
                 var keyColumnIndex = request.KeyColumnIndex ?? 0;
                 var keyColumn = columns[keyColumnIndex];
 
-                // Validate if this is the Counterparties sheet
-                if (!string.Equals(tableName, "Counterparties", StringComparison.OrdinalIgnoreCase))
+                // First verify if the table exists
+                using (var connection = new System.Data.SqlClient.SqlConnection(_configuration.GetConnectionString("DefaultConnection")))
                 {
-                    // For non-Counterparties sheets, use the original logic
-                    return await ProcessGenericSheet(request);
-                }
+                    await connection.OpenAsync();
+                    var cmd = new System.Data.SqlClient.SqlCommand(
+                        "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = @TableName", 
+                        connection);
+                    cmd.Parameters.AddWithValue("@TableName", tableName);
+                    var tableExists = (int)await cmd.ExecuteScalarAsync() > 0;
 
-                // Validate required columns for Counterparties
-                var requiredColumns = new[] { 
-                    "COunterpartyname", 
-                    "Counterpartytype", 
-                    "COunterpartyParentId",
-                    "AP_PaymentTermId",
-                    "AP_PaymentMethodId",
-                    "AR_PaymentTermId",
-                    "AR_PaymentMethodId",
-                    "CustomerProfile",
-                    "VendorProfile"
-                };
-
-                foreach (var required in requiredColumns)
-                {
-                    if (!columns.Any(c => string.Equals(c, required, StringComparison.OrdinalIgnoreCase)))
+                    if (!tableExists)
                     {
-                        return BadRequest(new { message = $"Required column '{required}' is missing from the Excel sheet." });
+                        return BadRequest(new ApiResponse<object>
+                        {
+                            Success = false,
+                            Message = $"Table '{tableName}' does not exist in the database",
+                            Data = null
+                        });
+                    }
+
+                    // Get table schema
+                    var schema = new Dictionary<string, (string DataType, bool IsNullable)>();
+                    cmd = new System.Data.SqlClient.SqlCommand(
+                        @"SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE 
+                          FROM INFORMATION_SCHEMA.COLUMNS 
+                          WHERE TABLE_NAME = @TableName", 
+                        connection);
+                    cmd.Parameters.AddWithValue("@TableName", tableName);
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            var col = reader["COLUMN_NAME"].ToString();
+                            schema[col] = (
+                                reader["DATA_TYPE"].ToString(),
+                                reader["IS_NULLABLE"].ToString() == "YES"
+                            );
+                        }
+                    }
+
+                    // Validate columns exist in the table
+                    foreach (var column in columns)
+                    {
+                        if (!schema.ContainsKey(column))
+                        {
+                            return BadRequest(new ApiResponse<object>
+                            {
+                                Success = false,
+                                Message = $"Column '{column}' does not exist in table '{tableName}'",
+                                Data = null
+                            });
+                        }
                     }
                 }
 
-                var connectionString = _configuration.GetConnectionString("DefaultConnection");
-                using (var connection = new System.Data.SqlClient.SqlConnection(connectionString))
+                // Special handling for Counterparties table
+                if (string.Equals(tableName, "Counterparties", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Validate required columns for Counterparties
+                    var requiredColumns = new[] { 
+                        "COunterpartyname", 
+                        "Counterpartytype", 
+                        "COunterpartyParentId",
+                        "AP_PaymentTermId",
+                        "AP_PaymentMethodId",
+                        "AR_PaymentTermId",
+                        "AR_PaymentMethodId",
+                        "CustomerProfile",
+                        "VendorProfile"
+                    };
+
+                    foreach (var requiredCol in requiredColumns)
+                    {
+                        if (!columns.Any(c => string.Equals(c, requiredCol, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            return BadRequest(new ApiResponse<object>
+                            {
+                                Success = false,
+                                Message = $"Required column '{requiredCol}' is missing in the Counterparties sheet",
+                                Data = null
+                            });
+                        }
+                    }
+                }
+
+                // Process the data for all tables
+                var processedRows = new List<List<object>>();
+                foreach (var row in request.Rows)
+                {
+                    var processedRow = new List<object>();
+                    for (int i = 0; i < columns.Count; i++)
+                    {
+                        var columnName = columns[i].ToLower();
+                        var value = i < row.Count ? GetValue(row[i]) : null;
+
+                        // Special handling for Counterparties table
+                        if (string.Equals(tableName, "Counterparties", StringComparison.OrdinalIgnoreCase))
+                        {
+                            switch (columnName)
+                            {
+                                case "ap_paymenttermid":
+                                case "ar_paymenttermid":
+                                    processedRow.Add(await LookupIdWithErrorAsync(
+                                        "SELECT PaymentTermId FROM paymentterms WHERE PaymentTermName = @val",
+                                        value,
+                                        $"Payment Term '{value}' not found in paymentterms table"
+                                    ));
+                                    break;
+
+                                case "ap_paymentmethodid":
+                                case "ar_paymentmethodid":
+                                    processedRow.Add(await LookupIdWithErrorAsync(
+                                        "SELECT PaymentMethodId FROM paymentmethods WHERE PaymentMethodCode = @val",
+                                        value,
+                                        $"Payment Method '{value}' not found in paymentmethods table"
+                                    ));
+                                    break;
+
+                                case "customerprofile":
+                                    processedRow.Add(await LookupIdWithErrorAsync(
+                                        "SELECT CounterPartyPostingGroupId FROM CounterPartyPostingGroups WHERE CounterPartyPostingGroupName = @val AND CounterPartyPostingGroupType = 'C'",
+                                        value,
+                                        $"Customer Profile '{value}' not found in CounterPartyPostingGroups table"
+                                    ));
+                                    break;
+
+                                case "vendorprofile":
+                                    processedRow.Add(await LookupIdWithErrorAsync(
+                                        "SELECT CounterPartyPostingGroupId FROM CounterPartyPostingGroups WHERE CounterPartyPostingGroupName = @val AND CounterPartyPostingGroupType = 'V'",
+                                        value,
+                                        $"Vendor Profile '{value}' not found in CounterPartyPostingGroups table"
+                                    ));
+                                    break;
+
+                                default:
+                                    processedRow.Add(value);
+                                    break;
+                            }
+                        }
+                        else
+                        {
+                            // For all other tables, just add the value as is
+                            processedRow.Add(value);
+                        }
+                    }
+                    processedRows.Add(processedRow);
+                }
+
+                // Build and execute the dynamic SQL
+                var keyCol = columns[0];
+                var updateCols = columns.Skip(1).ToList();
+                using (var connection = new System.Data.SqlClient.SqlConnection(_configuration.GetConnectionString("DefaultConnection")))
                 {
                     await connection.OpenAsync();
                     using (var transaction = connection.BeginTransaction())
                     {
                         try
                         {
-                            foreach (var row in request.Rows)
+                            foreach (var row in processedRows)
                             {
-                                if (row == null || row.All(cell => cell == null || 
-                                    (cell is System.Text.Json.JsonElement je && je.ValueKind == System.Text.Json.JsonValueKind.Null) || 
-                                    string.IsNullOrWhiteSpace(cell?.ToString())))
-                                {
-                                    continue;
-                                }
-
-                                var processedRow = row.ToList();
-
-                                // Process each column that needs transformation
-                                for (int i = 0; i < columns.Count; i++)
-                                {
-                                    string col = columns[i];
-                                    object value = GetValue(processedRow[i]);
-
-                                    if (value == null || string.IsNullOrWhiteSpace(value.ToString()))
-                                    {
-                                        processedRow[i] = DBNull.Value;
-                                        continue;
-                                    }
-
-                                    try
-                                    {
-                                        switch (col.ToLower())
-                                        {
-                                            case "ap_paymenttermid":
-                                            case "ar_paymenttermid":
-                                                processedRow[i] = await LookupIdWithErrorAsync(
-                                                    connection,
-                                                    "SELECT PaymentTermId FROM paymentterms WHERE PaymentTermName = @val",
-                                                    value,
-                                                    $"Payment Term '{value}' not found in paymentterms table",
-                                                    transaction
-                                                );
-                                                break;
-
-                                            case "ap_paymentmethodid":
-                                            case "ar_paymentmethodid":
-                                                processedRow[i] = await LookupIdWithErrorAsync(
-                                                    connection,
-                                                    "SELECT PaymentMethodId FROM paymentmethods WHERE PaymentMethodCode = @val",
-                                                    value,
-                                                    $"Payment Method '{value}' not found in paymentmethods table",
-                                                    transaction
-                                                );
-                                                break;
-
-                                            case "customerprofile":
-                                                processedRow[i] = await LookupIdWithErrorAsync(
-                                                    connection,
-                                                    "SELECT CounterPartyPostingGroupId FROM CounterPartyPostingGroups WHERE CounterPartyPostingGroupName = @val AND CounterPartyPostingGroupType = 'C'",
-                                                    value,
-                                                    $"Customer Profile '{value}' not found in CounterPartyPostingGroups table",
-                                                    transaction
-                                                );
-                                                break;
-
-                                            case "vendorprofile":
-                                                processedRow[i] = await LookupIdWithErrorAsync(
-                                                    connection,
-                                                    "SELECT CounterPartyPostingGroupId FROM CounterPartyPostingGroups WHERE CounterPartyPostingGroupName = @val AND CounterPartyPostingGroupType = 'V'",
-                                                    value,
-                                                    $"Vendor Profile '{value}' not found in CounterPartyPostingGroups table",
-                                                    transaction
-                                                );
-                                                break;
-
-                                            case "counterpartyparentid":
-                                                processedRow[i] = await LookupIdWithErrorAsync(
-                                                    connection,
-                                                    "SELECT CounterpartyId FROM counterparties WHERE CounterpartyName = @val",
-                                                    value,
-                                                    $"Parent Counterparty '{value}' not found in counterparties table",
-                                                    transaction
-                                                );
-                                                break;
-                                        }
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        throw new Exception($"Error processing column '{col}' with value '{value}': {ex.Message}");
-                                    }
-                                }
-
-                                // Build MERGE statement for Counterparties
-                                var columnList = string.Join(",", columns.Select(c => $"[{c}]"));
-                                var sourceList = string.Join(",", columns.Select((c, i) => $"@col{i}"));
-                                var updateList = string.Join(",", columns.Where((c, i) => i != keyColumnIndex).Select(c => $"Target.[{c}] = Source.[{c}]"));
-
+                                // Build MERGE statement
                                 var mergeSql = $@"
-MERGE INTO [Counterparties] AS Target
-USING (SELECT {string.Join(",", columns.Select((c, i) => $"@col{i} AS [{c}]"))}) AS Source
-    ON Target.[{keyColumn}] = Source.[{keyColumn}]
+MERGE INTO [{tableName}] AS Target
+USING (SELECT @{keyCol} AS [{keyCol}] {string.Concat(updateCols.Select(c => $", @{c} AS [{c}]"))}) AS Source
+    ON Target.[{keyCol}] = Source.[{keyCol}]
 WHEN MATCHED THEN
-    UPDATE SET {updateList}
+    UPDATE SET {string.Join(", ", updateCols.Select(c => $"Target.[{c}] = Source.[{c}]"))}
 WHEN NOT MATCHED THEN
-    INSERT ({columnList}) VALUES ({sourceList});";
+    INSERT ({string.Join(", ", columns.Select(c => $"[{c}]"))}) VALUES ({string.Join(", ", columns.Select(c => $"Source.[{c}]"))});";
 
-                                using (var cmd = new System.Data.SqlClient.SqlCommand(mergeSql, connection, transaction))
+                                using (var command = new System.Data.SqlClient.SqlCommand(mergeSql, connection, transaction))
                                 {
                                     for (int i = 0; i < columns.Count; i++)
                                     {
-                                        cmd.Parameters.AddWithValue($"@col{i}", processedRow[i] ?? DBNull.Value);
+                                        var value = i < row.Count ? GetValue(row[i]) : DBNull.Value;
+                                        command.Parameters.AddWithValue("@" + columns[i], value ?? DBNull.Value);
                                     }
-                                    await cmd.ExecuteNonQueryAsync();
+                                    await command.ExecuteNonQueryAsync();
                                 }
                             }
-
                             transaction.Commit();
-                            return Ok(new { message = "Counterparties data inserted/updated successfully!" });
                         }
-                        catch (Exception ex)
+                        catch
                         {
                             transaction.Rollback();
-                            throw new Exception($"Transaction rolled back. {ex.Message}");
+                            throw;
                         }
                     }
                 }
+
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = $"Data inserted successfully into {tableName}",
+                    Data = new { rowsInserted = processedRows.Count }
+                });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = ex.Message,
+                    Data = new { error = ex.Message }
+                });
             }
         }
 
@@ -288,23 +340,14 @@ WHEN NOT MATCHED THEN
             return value;
         }
 
-        private async Task<object> LookupIdWithErrorAsync(
-            System.Data.SqlClient.SqlConnection connection, 
-            string sql, 
-            object value, 
-            string notFoundMessage,
-            System.Data.SqlClient.SqlTransaction transaction)
+        private async Task<object> LookupIdWithErrorAsync(string sql, object value, string notFoundMessage)
         {
-            using (var cmd = new System.Data.SqlClient.SqlCommand(sql, connection, transaction))
+            var result = await _dbContext.Database.SqlQueryRaw<int>(sql, new[] { value }).FirstOrDefaultAsync();
+            if (result == 0)
             {
-                cmd.Parameters.AddWithValue("@val", value);
-                var result = await cmd.ExecuteScalarAsync();
-                if (result == null || result == DBNull.Value)
-                {
-                    throw new Exception(notFoundMessage);
-                }
-                return result;
+                throw new Exception(notFoundMessage);
             }
+            return result;
         }
 
         private async Task<IActionResult> ProcessGenericSheet(InsertRequest request)
@@ -337,7 +380,7 @@ WHEN NOT MATCHED THEN
                     while (await reader.ReadAsync())
                     {
                         var col = reader["COLUMN_NAME"].ToString();
-                        if (columns.Contains(col))
+                        if (!string.IsNullOrWhiteSpace(col) && columns.Contains(col))
                         {
                             schema[col] = (
                                 reader["DATA_TYPE"].ToString(),
@@ -356,6 +399,11 @@ WHEN NOT MATCHED THEN
                 for (int i = 0; i < columns.Count; i++)
                 {
                     var col = columns[i];
+                    if (string.IsNullOrWhiteSpace(col))
+                    {
+                        rowResult.Add(new CellValidationResult { Status = "valid", Message = "" });
+                        continue;
+                    }
                     var value = row.Count > i ? row[i] : null;
                     if (!schema.ContainsKey(col))
                     {
